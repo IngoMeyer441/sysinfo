@@ -1,5 +1,6 @@
 SRC_FILES = \
 	cli.sh \
+	layout.sh \
 	progress_bar.sh \
 	sys.sh \
 	terminal.sh \
