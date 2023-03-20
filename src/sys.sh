@@ -2,6 +2,7 @@
 
 INFOS=( \
     "print_os_info_linux" \
+    "print_uptime_info_linux" \
     "print_shell_info_linux" \
     "print_cpu_info_linux" \
     "print_gpu_info_linux" \
@@ -27,6 +28,11 @@ print_os_info_linux () {
             /etc/os-release
     fi
     echo "Linux kernel $(uname -r)"
+}
+
+print_uptime_info_linux () {
+    echo "Uptime"
+    uptime | awk -F',\\s*' '{sub(/.*up\s*/, "", $1); print $1 }'
 }
 
 print_shell_info_linux () {
