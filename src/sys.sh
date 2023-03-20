@@ -59,6 +59,8 @@ print_gpu_info_linux () {
     _gpu_info_general () {
         local lscpi_vga_output card_name pci_address card_ram
 
+        command_available lspci || return
+
         lscpi_vga_output="$(lspci | grep '\bVGA\b')"
         card_name="$(awk -F':\\s+' '{ print $2 }' <<< "${lscpi_vga_output}")"
         pci_address="$(awk '{ print $1 }' <<< "${lscpi_vga_output}")"
