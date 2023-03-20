@@ -1,6 +1,7 @@
 # shellcheck shell=bash
 
 INFOS=( \
+    "print_shell_info_linux" \
     "print_cpu_info_linux" \
     "print_gpu_info_linux" \
     "print_ram_and_swap_usage_linux" \
@@ -10,6 +11,12 @@ INFOS=( \
 TWO_PASS_INFOS=( \
     "print_cpu_usage_linux" \
 )
+
+print_shell_info_linux () {
+    [[ -n "${SHELL}" ]] || return
+    echo "Shell"
+    "${SHELL}" --version | head -1
+}
 
 print_cpu_info_linux () {
     local cpu_model core_count thread_count socket_count
