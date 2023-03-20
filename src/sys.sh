@@ -1,6 +1,7 @@
 # shellcheck shell=bash
 
 INFOS=( \
+    "print_os_info_linux" \
     "print_shell_info_linux" \
     "print_cpu_info_linux" \
     "print_gpu_info_linux" \
@@ -11,6 +12,22 @@ INFOS=( \
 TWO_PASS_INFOS=( \
     "print_cpu_usage_linux" \
 )
+
+print_os_info_linux () {
+    echo "Operating system"
+    if command_available lsb_release; then
+        printf "%s %s (%s);;" \
+            "$(lsb_release -d | awk -F':\\s+' '{ print $2 }')" \
+            "$(lsb_release -r | awk -F':\\s+' '{ print $2 }')" \
+            "$(lsb_release -c | awk -F':\\s+' '{ print $2 }')"
+    elif [[ -r "/etc/os-release" ]]; then
+        awk \
+            -F'=' \
+            '{ gsub(/"/, "", $2); info[$1]=$2 } END { printf("%s %s;;", info["NAME"], info["VERSION"]) }' \
+            /etc/os-release
+    fi
+    echo "Linux kernel $(uname -r)"
+}
 
 print_shell_info_linux () {
     [[ -n "${SHELL}" ]] || return
