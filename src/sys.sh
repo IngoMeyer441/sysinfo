@@ -15,8 +15,17 @@ TWO_PASS_INFOS=( \
 )
 
 print_os_info_linux () {
+    local prefer_lsb
+
+    if [[ -f /etc/arch-release ]] || [[ ! -r /etc/os-release ]]; then
+        # `lsb_release` gives more details on Arch-based distributions
+        prefer_lsb=1
+    else
+        prefer_lsb=0
+    fi
+
     echo "Operating system"
-    if command_available lsb_release; then
+    if command_available lsb_release && (( prefer_lsb )); then
         printf "%s %s (%s);;" \
             "$(lsb_release -d | awk -F':\\s+' '{ print $2 }')" \
             "$(lsb_release -r | awk -F':\\s+' '{ print $2 }')" \
