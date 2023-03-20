@@ -3,7 +3,7 @@
 check_supported_colors () {
     if [[ -z "${COLOR_MODE}" || "${COLOR_MODE}" == "auto" ]]; then
         [[ $COLORTERM =~ ^(truecolor|24bit)$ ]] && { echo "truecolor"; return; }
-        command -v tput &>/dev/null && { tput colors; return; }
+        command_available tput && { tput colors; return; }
         echo "16"  # Assume a minimum of 16 colors as fallback
     else
         echo "${COLOR_MODE}"
@@ -40,6 +40,6 @@ get_cursor_column () {
 }
 
 get_terminal_width () {
-    command -v tput &>/dev/null || return 1
+    command_available tput || return
     tput cols
 }
