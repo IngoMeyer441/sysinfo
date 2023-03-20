@@ -26,38 +26,54 @@ print_cpu_info_linux () {
 }
 
 print_gpu_info_linux () {
-    local nvidia_card_pci_addresses pci_address gpu_models gpu_model
+    _gpu_info_general () {
+        local lscpi_vga_output card_name pci_address card_ram
 
-    nvidia_card_pci_addresses=()
-    if [[ -d "/proc/driver/nvidia/gpus" ]]; then
-        mapfile -t nvidia_card_pci_addresses < <(ls /proc/driver/nvidia/gpus)
-    fi
+        lscpi_vga_output="$(lspci | grep '\bVGA\b')"
+        card_name="$(awk -F':\\s+' '{ print $2 }' <<< "${lscpi_vga_output}")"
+        pci_address="$(awk '{ print $1 }' <<< "${lscpi_vga_output}")"
+        card_ram="$(lspci -s "${pci_address}" -v | grep ' prefetchable\b' | awk -F'size=|]' '{ print $2 }')"
 
-    if (( "${#nvidia_card_pci_addresses[@]}" <= 1 )); then
-        echo "Dedicated GPU"
-    else
-        echo "Dedicated GPUs"
-    fi
+        echo "GPU"
+        echo "${card_name}, ${card_ram} RAM"
+    }
 
-    gpu_models=()
-    for pci_address in "${nvidia_card_pci_addresses[@]}"; do
-        gpu_model="$(awk \
-            -F':\\s+' \
-            '$1 == "Model" { print $2; exit }' \
-            "/proc/driver/nvidia/gpus/${pci_address}/information" \
-        )"
-        if [[ -n "${gpu_model}" ]]; then
-            gpu_models+=("${gpu_model}")
+    _gpu_info_nvidia () {
+        local nvidia_card_pci_addresses pci_address gpu_models gpu_model
+
+        nvidia_card_pci_addresses=()
+        if [[ -d "/proc/driver/nvidia/gpus" ]]; then
+            mapfile -t nvidia_card_pci_addresses < <(ls /proc/driver/nvidia/gpus)
         fi
-    done
-    if (( "${#gpu_models[@]}" > 0 )); then
-        for gpu_model in "${gpu_models[@]}"; do
-            echo "${gpu_model}"
+
+        gpu_models=()
+        for pci_address in "${nvidia_card_pci_addresses[@]}"; do
+            gpu_model="$(awk \
+                -F':\\s+' \
+                '$1 == "Model" { print $2; exit }' \
+                "/proc/driver/nvidia/gpus/${pci_address}/information" \
+            )"
+            if [[ -n "${gpu_model}" ]]; then
+                gpu_models+=("${gpu_model}")
+            fi
         done
-    else
-        # TODO: Detect more dedicated GPU chips
-        echo "(no NVIDIA card detected)"
-    fi
+        if (( "${#gpu_models[@]}" > 0 )); then
+            if (( "${#gpu_models[@]}" == 1 )); then
+                echo "Dedicated GPU"
+            else
+                echo "Dedicated GPUs"
+            fi
+            for gpu_model in "${gpu_models[@]}"; do
+                echo "${gpu_model}"
+            done
+        else
+            return 1
+        fi
+    }
+
+    # TODO: Detect more dedicated GPU chips
+    _gpu_info_nvidia || \
+    _gpu_info_general
 }
 
 print_cpu_usage_linux () {
