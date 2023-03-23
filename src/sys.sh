@@ -166,10 +166,12 @@ print_ram_and_swap_usage_linux () {
         "$(bytes_to_human_size "${used_ram}")" \
         "$(bytes_to_human_size "${total_ram}")" \
         "{{ horizontal_progress_bar(${used_ram}, 0, ${total_ram}, true) }}"
-    printf "Swap: %s / %s %s\n" \
-        "$(bytes_to_human_size "${used_swap}")" \
-        "$(bytes_to_human_size "${total_swap}")" \
-        "{{ horizontal_progress_bar(${used_swap}, 0, ${total_swap}, true) }}"
+    if (( total_swap > 0 )); then
+        printf "Swap: %s / %s %s\n" \
+            "$(bytes_to_human_size "${used_swap}")" \
+            "$(bytes_to_human_size "${total_swap}")" \
+            "{{ horizontal_progress_bar(${used_swap}, 0, ${total_swap}, true) }}"
+    fi
 }
 
 print_filesystem_usage_linux () {
