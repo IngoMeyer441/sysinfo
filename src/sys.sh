@@ -40,6 +40,7 @@ print_os_info_linux () {
 }
 
 print_uptime_info_linux () {
+    command_available uptime || return
     echo "Uptime"
     uptime | awk -F',\\s*' '{sub(/.*up\s*/, "", $1); print $1 }'
 }
@@ -158,6 +159,8 @@ print_cpu_usage_linux () {
 print_ram_and_swap_usage_linux () {
     local used_ram total_ram used_swap total_swap
 
+    command_available free || return
+
     read -r used_ram total_ram < <(free -b | awk -F'[:[:space:]]+' '$1 == "Mem" { printf("%d %d", $3, $2); exit }')
     read -r used_swap total_swap < <(free -b | awk -F'[:[:space:]]+' '$1 == "Swap" { printf("%d %d", $3, $2); exit }')
 
@@ -203,7 +206,7 @@ display_infos () {
         # Sleep a short amount of time to improve the measurement of the cpu usage
         sleep 1
         for info_func in "${all_infos[@]}"; do
-            current_info="$(${info_func})"
+            current_info="$(${info_func})" || continue
             descriptions+=( "$(awk 'NR == 1' <<< "${current_info}")" )
             info_texts+=( "$(awk 'NR > 1' <<< "${current_info}")" )
         done
