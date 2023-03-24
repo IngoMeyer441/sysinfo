@@ -27,9 +27,9 @@ print_os_info_linux () {
     echo "Operating system"
     if command_available lsb_release && (( prefer_lsb )); then
         printf "%s %s (%s);;" \
-            "$(lsb_release -d | awk -F':\\s+' '{ print $2 }')" \
-            "$(lsb_release -r | awk -F':\\s+' '{ print $2 }')" \
-            "$(lsb_release -c | awk -F':\\s+' '{ print $2 }')"
+            "$(lsb_release -d | awk -F':[ \t]+' '{ print $2 }')" \
+            "$(lsb_release -r | awk -F':[ \t]+' '{ print $2 }')" \
+            "$(lsb_release -c | awk -F':[ \t]+' '{ print $2 }')"
     elif [[ -r "/etc/os-release" ]]; then
         awk \
             -F'=' \
@@ -42,7 +42,7 @@ print_os_info_linux () {
 print_uptime_info_linux () {
     command_available uptime || return
     echo "Uptime"
-    uptime | awk -F',\\s*' '{sub(/.*up\s*/, "", $1); print $1 }'
+    uptime | awk -F',[ \t]*' '{sub(/.*up\s*/, "", $1); print $1 }'
 }
 
 print_shell_info_linux () {
@@ -54,12 +54,12 @@ print_shell_info_linux () {
 print_cpu_info_linux () {
     local cpu_model core_count thread_count socket_count
 
-    cpu_model="$(awk -F'\\s+:\\s+' '$1 == "model name" { print $2; exit }' /proc/cpuinfo)"
+    cpu_model="$(awk -F'[ \t]+:[ \t]+' '$1 == "model name" { print $2; exit }' /proc/cpuinfo)"
     socket_count="$( \
-        awk -F'\\s+:\\s+' '$1 == "physical id" && !a[$2]++ { ++sockets } END { print sockets }' /proc/cpuinfo \
+        awk -F'[ \t]+:[ \t]+' '$1 == "physical id" && !a[$2]++ { ++sockets } END { print sockets }' /proc/cpuinfo \
     )"
-    core_count="$(awk -F'\\s+:\\s+' '$1 == "core id" && !a[$2]++ { ++cores } END { print cores }' /proc/cpuinfo)"
-    thread_count="$(awk -F'\\s+:\\s+' '$1 == "core id" { ++threads } END { print threads }' /proc/cpuinfo)"
+    core_count="$(awk -F'[ \t]+:[ \t]+' '$1 == "core id" && !a[$2]++ { ++cores } END { print cores }' /proc/cpuinfo)"
+    thread_count="$(awk -F'[ \t]+:[ \t]+' '$1 == "core id" { ++threads } END { print threads }' /proc/cpuinfo)"
 
     echo "CPU"
     echo "${cpu_model}, ${socket_count} sockets, ${core_count} cores, ${thread_count} threads"
@@ -72,7 +72,7 @@ print_gpu_info_linux () {
         command_available lspci || return
 
         lscpi_vga_output="$(lspci | grep '\bVGA\b')"
-        card_name="$(awk -F':\\s+' '{ print $2 }' <<< "${lscpi_vga_output}")"
+        card_name="$(awk -F':[ \t]+' '{ print $2 }' <<< "${lscpi_vga_output}")"
         pci_address="$(awk '{ print $1 }' <<< "${lscpi_vga_output}")"
         card_ram="$(lspci -s "${pci_address}" -v | grep ' prefetchable\b' | awk -F'size=|]' '{ print $2 }')"
 
@@ -91,7 +91,7 @@ print_gpu_info_linux () {
         gpu_models=()
         for pci_address in "${nvidia_card_pci_addresses[@]}"; do
             gpu_model="$(awk \
-                -F':\\s+' \
+                -F':[ \t]+' \
                 '$1 == "Model" { print $2; exit }' \
                 "/proc/driver/nvidia/gpus/${pci_address}/information" \
             )"
