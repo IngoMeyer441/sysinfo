@@ -178,16 +178,20 @@ print_ram_and_swap_usage_linux () {
 }
 
 print_filesystem_usage_linux () {
-    local mount_point used_bytes total_bytes
+    local at_least_one_mount_point mount_point used_bytes total_bytes
 
     echo "Filesystem usage"
+    at_least_one_mount_point=0
     while read -r mount_point used_bytes total_bytes; do
         printf "%s: %s / %s %s;;" \
         "${mount_point}" \
         "$(bytes_to_human_size "${used_bytes}")" \
         "$(bytes_to_human_size "${total_bytes}")" \
         "{{ horizontal_progress_bar(${used_bytes}, 0, ${total_bytes}, true) }}"
+        at_least_one_mount_point=1
     done < <(df -Pl -B 1 | awk '$1 ~ "^/dev" { printf("%s %d %d\n", $6, $3, $2) }')
+
+    (( at_least_one_mount_point ))
 }
 
 display_infos () {
