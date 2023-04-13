@@ -141,6 +141,11 @@ print_cpu_usage_linux () {
 
     (( print_values )) || return 0
 
+    if (( total_cpu_diffs[0] == 0 )); then
+        >&2 echo "Could not determine the CPU usage. Your awk implementation probably cannot handle large integers."
+        return 1
+    fi
+
     echo "CPU usage"
     printf "Overall: %d %% / %d %% %s;;Cores:;;" \
         "$(awk \
