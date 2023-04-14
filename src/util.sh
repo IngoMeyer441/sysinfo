@@ -76,22 +76,22 @@ repeat_char () {
 }
 
 bytes_to_human_size () {
-    local bytes units
+    local kibibytes units
 
-    bytes="$1"
-    units=( "B" "KiB" "MiB" "GiB" "TiB" "PiB" )
+    kibibytes="$1"
+    units=( "KiB" "MiB" "GiB" "TiB" "PiB" )
 
     scale=1
     for (( i = 0; i < ${#units[@]} - 1; ++i )); do
-        if (( scale*1024 >= bytes )); then
+        if (( scale*1024 >= kibibytes )); then
             break
         fi
         (( scale *= 1024 ))
     done
 
     awk \
-        -v bytes="${bytes}" \
+        -v kibibytes="${kibibytes}" \
         -v scale="${scale}" \
         -v unit="${units[$i]}" \
-        'BEGIN { printf("%0.2f %s\n", bytes/scale, unit) }'
+        'BEGIN { printf("%0.2f %s\n", kibibytes/scale, unit) }'
 }

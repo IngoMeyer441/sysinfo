@@ -166,8 +166,8 @@ print_ram_and_swap_usage_linux () {
 
     command_available free || return
 
-    read -r used_ram total_ram < <(free -b | awk -F'[:[:space:]]+' '$1 == "Mem" { printf("%d %d", $3, $2); exit }')
-    read -r used_swap total_swap < <(free -b | awk -F'[:[:space:]]+' '$1 == "Swap" { printf("%d %d", $3, $2); exit }')
+    read -r used_ram total_ram < <(free -k | awk -F'[:[:space:]]+' '$1 == "Mem" { printf("%d %d", $3, $2); exit }')
+    read -r used_swap total_swap < <(free -k | awk -F'[:[:space:]]+' '$1 == "Swap" { printf("%d %d", $3, $2); exit }')
 
     echo "RAM and Swap usage"
     printf "RAM: %s / %s %s;;" \
@@ -194,7 +194,7 @@ print_filesystem_usage_linux () {
         "$(bytes_to_human_size "${total_bytes}")" \
         "{{ horizontal_progress_bar(${used_bytes}, 0, ${total_bytes}, true) }}"
         at_least_one_mount_point=1
-    done < <(df -Pl -B 1 | awk '$1 ~ "^/dev" { printf("%s %d %d\n", $6, $3, $2) }')
+    done < <(df -Pkl | awk '$1 ~ "^/dev" { printf("%s %d %d\n", $6, $3, $2) }')
 
     (( at_least_one_mount_point ))
 }
