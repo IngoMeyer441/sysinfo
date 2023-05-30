@@ -194,7 +194,7 @@ print_filesystem_usage_linux () {
         "$(bytes_to_human_size "${total_bytes}")" \
         "{{ horizontal_progress_bar(${used_bytes}, 0, ${total_bytes}, true) }}"
         at_least_one_mount_point=1
-    done < <(df -Pkl | awk '$1 ~ "^/dev" { printf("%s %d %d\n", $6, $3, $2) }')
+    done < <(df -Pkl | awk '$1 ~ "^/dev" && $6 !~ "^/snap" { printf("%s %d %d\n", $6, $3, $2) }')
 
     (( at_least_one_mount_point ))
 }
