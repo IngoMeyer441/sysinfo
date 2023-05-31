@@ -230,6 +230,9 @@ print_nic_usage_linux () {
     declare -ga previous_rxs previous_txs
 
     current_net_timestamp="${EPOCHREALTIME}"
+    if [[ -z "${current_net_timestamp}" ]]; then
+        current_net_timestamp="$(date '+%s')"
+    fi
     print_values="$(( ${#previous_rxs[@]} ))"
     mapfile -t net_devices < <(ls /sys/class/net)
 
