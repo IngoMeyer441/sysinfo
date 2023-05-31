@@ -12,6 +12,7 @@ INFOS=( \
 
 TWO_PASS_INFOS=( \
     "print_cpu_usage_linux" \
+    "print_nic_usage_linux" \
 )
 
 print_os_info_linux () {
@@ -199,6 +200,75 @@ print_filesystem_usage_linux () {
     (( at_least_one_mount_point ))
 }
 
+print_nic_usage_linux () {
+    local current_net_timestamp print_values net_devices diff_timestamp current_rxs current_txs net_device rx tx speed
+    local diff_rx_per_s diff_tx_per_s i
+    declare -g previous_net_timestamp
+    declare -ga previous_rxs previous_txs
+
+    current_net_timestamp="${EPOCHREALTIME}"
+    print_values="$(( ${#previous_rxs[@]} ))"
+    mapfile -t net_devices < <(ls /sys/class/net)
+
+    (( "${#net_devices}" > 0 )) || return
+
+    if (( print_values )); then
+        echo "NIC usage"
+        diff_timestamp="$( \
+            awk \
+                -v current_net_timestamp="${current_net_timestamp}" \
+                -v previous_net_timestamp="${previous_net_timestamp}" \
+                'BEGIN { printf("%lf\n", current_net_timestamp-previous_net_timestamp) }' \
+        )"
+    fi
+    current_rxs=()
+    current_txs=()
+    i=0
+    for net_device in "${net_devices[@]}"; do
+        # Consider only physical network devices
+        [[ -d "/sys/class/net/${net_device}/device" ]] || continue
+        # Use KiB as common unit
+        rx="$(awk '{ printf("%d\n", $1 / 1024) }' < "/sys/class/net/${net_device}/statistics/rx_bytes")"
+        tx="$(awk '{ printf("%d\n", $1 / 1024) }' < "/sys/class/net/${net_device}/statistics/tx_bytes")"
+        speed=0
+        if [[ -d "/sys/class/net/${net_device}/wireless" ]]; then
+            speed="$(awk "\$1 == \"${net_device}:\" { printf(\"%d\n\", \$3 * 1000 / 8) }" < /proc/net/wireless)"
+        else
+            speed="$(awk '{ printf("%d\n", $1 * 1000 / 8) }' < "/sys/class/net/${net_device}/speed" 2>/dev/null)"
+        fi
+        if (( print_values )); then
+            diff_rx_per_s="$( \
+                awk \
+                    -v current_rx="${rx}" \
+                    -v previous_rx="${previous_rxs[$i]}" \
+                    -v diff_timestamp="${diff_timestamp}" \
+                    'BEGIN { printf("%d\n", (current_rx-previous_rx)/diff_timestamp) }' \
+                )"
+            diff_tx_per_s="$( \
+                awk \
+                    -v current_tx="${tx}" \
+                    -v previous_tx="${previous_txs[$i]}" \
+                    -v diff_timestamp="${diff_timestamp}" \
+                    'BEGIN { printf("%d\n", (current_tx-previous_tx)/diff_timestamp) }' \
+                )"
+            printf "%s: RX: %s/s / %s/s %s TX: %s/s / %s/s %s;;" \
+                "${net_device}" \
+                "$(bytes_to_human_size "${diff_rx_per_s}")" \
+                "$(bytes_to_human_size "${speed}")" \
+                "{{ horizontal_progress_bar(${diff_rx_per_s}, 0, ${speed}, true) }}" \
+                "$(bytes_to_human_size "${diff_tx_per_s}")" \
+                "$(bytes_to_human_size "${speed}")" \
+                "{{ horizontal_progress_bar(${diff_tx_per_s}, 0, ${speed}, true) }}"
+        fi
+        current_rxs+=( "${rx}" )
+        current_txs+=( "${tx}" )
+        (( ++i ))
+    done
+    previous_net_timestamp="${current_net_timestamp}"
+    previous_rxs=( "${current_rxs[@]}" )
+    previous_txs=( "${current_txs[@]}" )
+}
+
 display_infos () {
     local all_infos descriptions info_texts info_func current_info max_desc_len i description info_text
 
@@ -212,7 +282,7 @@ display_infos () {
         for info_func in "${TWO_PASS_INFOS[@]}"; do
             ${info_func}
         done
-        # Sleep a short amount of time to improve the measurement of the cpu usage
+        # Sleep a short amount of time to improve the measurement of the cpu and nic usage
         sleep 1
         for info_func in "${all_infos[@]}"; do
             current_info="$(${info_func})" || continue
