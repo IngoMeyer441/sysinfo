@@ -75,7 +75,7 @@ repeat_char () {
     done
 }
 
-bytes_to_human_size () {
+kbytes_to_human_size () {
     local kibibytes units
 
     kibibytes="$1"

@@ -172,13 +172,13 @@ print_ram_and_swap_usage_linux () {
 
     echo "RAM and Swap usage"
     printf "RAM: %s / %s %s;;" \
-        "$(bytes_to_human_size "${used_ram}")" \
-        "$(bytes_to_human_size "${total_ram}")" \
+        "$(kbytes_to_human_size "${used_ram}")" \
+        "$(kbytes_to_human_size "${total_ram}")" \
         "{{ horizontal_progress_bar(${used_ram}, 0, ${total_ram}, true) }}"
     if (( total_swap > 0 )); then
         printf "Swap: %s / %s %s\n" \
-            "$(bytes_to_human_size "${used_swap}")" \
-            "$(bytes_to_human_size "${total_swap}")" \
+            "$(kbytes_to_human_size "${used_swap}")" \
+            "$(kbytes_to_human_size "${total_swap}")" \
             "{{ horizontal_progress_bar(${used_swap}, 0, ${total_swap}, true) }}"
     fi
 }
@@ -191,8 +191,8 @@ print_filesystem_usage_linux () {
     while read -r mount_point used_bytes total_bytes; do
         printf "%s: %s / %s %s;;" \
         "${mount_point}" \
-        "$(bytes_to_human_size "${used_bytes}")" \
-        "$(bytes_to_human_size "${total_bytes}")" \
+        "$(kbytes_to_human_size "${used_bytes}")" \
+        "$(kbytes_to_human_size "${total_bytes}")" \
         "{{ horizontal_progress_bar(${used_bytes}, 0, ${total_bytes}, true) }}"
         at_least_one_mount_point=1
     done < <(df -Pkl | awk '$1 ~ "^/dev" && $6 !~ "^/snap" { printf("%s %d %d\n", $6, $3, $2) }')
@@ -253,11 +253,11 @@ print_nic_usage_linux () {
                 )"
             printf "%s: RX: %s/s / %s/s %s TX: %s/s / %s/s %s;;" \
                 "${net_device}" \
-                "$(bytes_to_human_size "${diff_rx_per_s}")" \
-                "$(bytes_to_human_size "${speed}")" \
+                "$(kbytes_to_human_size "${diff_rx_per_s}")" \
+                "$(kbytes_to_human_size "${speed}")" \
                 "{{ horizontal_progress_bar(${diff_rx_per_s}, 0, ${speed}, true) }}" \
-                "$(bytes_to_human_size "${diff_tx_per_s}")" \
-                "$(bytes_to_human_size "${speed}")" \
+                "$(kbytes_to_human_size "${diff_tx_per_s}")" \
+                "$(kbytes_to_human_size "${speed}")" \
                 "{{ horizontal_progress_bar(${diff_tx_per_s}, 0, ${speed}, true) }}"
         fi
         current_rxs+=( "${rx}" )
