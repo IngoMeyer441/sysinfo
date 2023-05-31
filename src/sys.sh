@@ -120,15 +120,17 @@ print_gpu_info_linux () {
 }
 
 print_cpu_usage_linux () {
-    local print_values used_cpu total_cpu i cpu_cores
-    declare -ga used_cpu_diffs total_cpu_diffs
+    local print_values current_used_cpu current_total_cpu used_cpu total_cpu i cpu_cores used_cpu_diffs total_cpu_diffs
+    declare -ga previous_used_cpu previous_total_cpu
 
-    print_values="$(( ${#used_cpu_diffs[@]} ))"
+    print_values="$(( ${#previous_used_cpu[@]} ))"
 
+    current_used_cpu=()
+    current_total_cpu=()
     i=0
     while read -r used_cpu total_cpu; do
-        (( used_cpu_diffs[i] = used_cpu - ${used_cpu_diffs[$i]:-0} ))
-        (( total_cpu_diffs[i] = total_cpu - ${total_cpu_diffs[$i]:-0} ))
+        current_used_cpu+=( "${used_cpu}" )
+        current_total_cpu+=( "${total_cpu}" )
         (( ++i ))
     done < <(awk \
         '$1 ~ "^cpu" { \
@@ -140,26 +142,47 @@ print_cpu_usage_linux () {
         }' < /proc/stat)
     cpu_cores="$(( i - 1 ))"
 
-    (( print_values )) || return 0
+    if (( print_values )); then
+        used_cpu_diffs=()
+        total_cpu_diffs=()
+        for (( i = 0; i < ${#current_used_cpu[@]}; ++i )); do
+            used_cpu_diffs+=( \
+                "$(awk \
+                    -v current_used_cpu="${current_used_cpu[$i]}" \
+                    -v previous_used_cpu="${previous_used_cpu[$i]}" \
+                    'BEGIN { printf("%d\n", current_used_cpu - previous_used_cpu) }' \
+                )" \
+            )
+            total_cpu_diffs+=( \
+                "$(awk \
+                    -v current_total_cpu="${current_total_cpu[$i]}" \
+                    -v previous_total_cpu="${previous_total_cpu[$i]}" \
+                    'BEGIN { printf("%d\n", current_total_cpu - previous_total_cpu) }' \
+                )" \
+            )
+        done
 
-    if (( total_cpu_diffs[0] == 0 )); then
-        >&2 echo "Could not determine the CPU usage. Your awk implementation probably cannot handle large integers."
-        return 1
+        if (( total_cpu_diffs[0] == 0 )); then
+            >&2 echo "Could not determine the CPU usage. Your awk implementation probably cannot handle large integers."
+            return 1
+        fi
+
+        echo "CPU usage"
+        printf "Overall: %d %% / %d %% %s;;Cores:;;" \
+            "$(awk \
+                -v used_cpu_diff="${used_cpu_diffs[0]}" \
+                -v total_cpu_diff="${total_cpu_diffs[0]}" \
+                -v cpu_cores="${cpu_cores}" \
+                'BEGIN { printf("%.0f", used_cpu_diff / total_cpu_diff * 100 * cpu_cores) }'
+            )" \
+            "$(( 100 * cpu_cores))" \
+            "{{ horizontal_progress_bar(${used_cpu_diffs[0]}, 0, ${total_cpu_diffs[0]}, true) }}"
+        for (( i = 1; i < ${#used_cpu_diffs[@]}; ++i )); do
+            printf "%s;;;" "{{ vertical_progress_bar(${used_cpu_diffs[$i]}, 0, ${total_cpu_diffs[$i]}, true) }}"
+        done
     fi
-
-    echo "CPU usage"
-    printf "Overall: %d %% / %d %% %s;;Cores:;;" \
-        "$(awk \
-            -v used_cpu_diff="${used_cpu_diffs[0]}" \
-            -v total_cpu_diff="${total_cpu_diffs[0]}" \
-            -v cpu_cores="${cpu_cores}" \
-            'BEGIN { printf("%.0f", used_cpu_diff / total_cpu_diff * 100 * cpu_cores) }'
-        )" \
-        "$(( 100 * cpu_cores))" \
-        "{{ horizontal_progress_bar(${used_cpu_diffs[0]}, 0, ${total_cpu_diffs[0]}, true) }}"
-    for (( i = 1; i < ${#used_cpu_diffs[@]}; ++i )); do
-        printf "%s;;;" "{{ vertical_progress_bar(${used_cpu_diffs[$i]}, 0, ${total_cpu_diffs[$i]}, true) }}"
-    done
+    previous_used_cpu=( "${current_used_cpu[@]}" )
+    previous_total_cpu=( "${current_total_cpu[@]}" )
 }
 
 print_ram_and_swap_usage_linux () {
