@@ -255,9 +255,13 @@ print_nic_usage_linux () {
         tx="$(awk '{ printf("%d\n", $1 / 1024) }' < "/sys/class/net/${net_device}/statistics/tx_bytes")"
         speed=0
         if [[ -d "/sys/class/net/${net_device}/wireless" ]]; then
-            speed="$(awk "\$1 == \"${net_device}:\" { printf(\"%d\n\", \$3 * 1000 / 8) }" < /proc/net/wireless)"
+            speed="$(awk "\$1 == \"${net_device}:\" { printf(\"%d\n\", \$3 * 1024 / 8) }" < /proc/net/wireless)"
         else
-            speed="$(awk '{ printf("%d\n", $1 * 1000 / 8) }' < "/sys/class/net/${net_device}/speed" 2>/dev/null)"
+            speed="$(awk '{ printf("%d\n", $1 * 1024 / 8) }' < "/sys/class/net/${net_device}/speed" 2>/dev/null)"
+        fi
+        if (( speed <= 0 )); then
+            # Assume 100 MBit/s (= 12800 KiB/s) if speed cannot be determined
+            speed=12800
         fi
         if (( print_values )); then
             diff_rx_per_s="$( \
