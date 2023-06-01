@@ -18,8 +18,8 @@ get_info_field_length () {
 
 render_and_print_info_line () {
     local print_line current_line_length available_text_width expanding_elements_count additional_columns_per_element
-    local additional_columns_remainder text_until_next_function function_call function_name function_args
-    local progress_bar_width
+    local additional_columns_remainder fill_chars_count text_until_next_function function_call function_name
+    local function_args progress_bar_width
 
     print_line="$1"
     current_line_length="$2"
@@ -41,9 +41,18 @@ render_and_print_info_line () {
                     ); \
                 }'
         )
+        fill_chars_count=0
     else
         additional_columns_per_element=0
         additional_columns_remainder=0
+        fill_chars_count="$(awk \
+            -v current_line_length="${current_line_length}" \
+            -v available_text_width="${available_text_width}" \
+            'BEGIN { \
+                remaining_columns = available_text_width - current_line_length; \
+                printf("%d", remaining_columns); \
+            }' \
+        )"
     fi
 
     while grep -q '{{' <<< "${print_line}"; do
@@ -79,7 +88,9 @@ render_and_print_info_line () {
         esac
         print_line="$(grep -Po '^{{[^}]*}}\K.*' <<< "${print_line}")"
     done
-    printf "%s\n" "${print_line}"
+    printf "%s" "${print_line}"
+    repeat_char " " "${fill_chars_count}"
+    printf "\n"
 }
 
 print_info_text () {

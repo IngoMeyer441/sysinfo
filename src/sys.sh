@@ -303,34 +303,59 @@ print_nic_usage_linux () {
 }
 
 display_infos () {
-    local all_infos descriptions info_texts info_func current_info max_desc_len i description info_text
+    local all_infos descriptions info_texts first_run start_timestamp info_func current_info max_desc_len i description
+    local info_text current_timestamp number_of_lines
 
     all_infos=( "${INFOS[@]}" "${TWO_PASS_INFOS[@]}" )
-    descriptions=()
-    info_texts=()
 
     init_script_tmp_dir || return
 
-    {
-        for info_func in "${TWO_PASS_INFOS[@]}"; do
-            ${info_func}
-        done
-        # Sleep a short amount of time to improve the measurement of the cpu and nic usage
-        sleep 1
-        for info_func in "${all_infos[@]}"; do
-            current_info="$(${info_func})" || continue
-            descriptions+=( "$(awk 'NR == 1' <<< "${current_info}")" )
-            info_texts+=( "$(awk 'NR > 1' <<< "${current_info}")" )
-        done
+    first_run=1
+    start_timestamp="$(date '+%s')"
+    while true; do
+        descriptions=()
+        info_texts=()
+        {
+            if (( first_run )); then
+                for info_func in "${TWO_PASS_INFOS[@]}"; do
+                    ${info_func}
+                done
+            fi
+            # Sleep a short amount of time to improve the measurement of the cpu and nic usage
+            sleep 1
+            for info_func in "${all_infos[@]}"; do
+                current_info="$(${info_func})" || continue
+                descriptions+=( "$(awk 'NR == 1' <<< "${current_info}")" )
+                info_texts+=( "$(awk 'NR > 1' <<< "${current_info}")" )
+            done
 
-        max_desc_len="$(max_string_length "${descriptions[@]}")"
+            max_desc_len="$(max_string_length "${descriptions[@]}")"
 
-        for (( i = 0; i < ${#descriptions[@]}; ++i )); do
-            description="${descriptions[$i]}"
-            info_text="${info_texts[$i]}"
-            printf "%+${max_desc_len}s:" "${description}"
-            print_info_text "$(( max_desc_len + 1 ))" "$(get_terminal_width)" "${info_text}"
-        done
-    } > "${SCRIPT_TMP_DIR}/infos.out" && \
-    cat "${SCRIPT_TMP_DIR}/infos.out"
+            for (( i = 0; i < ${#descriptions[@]}; ++i )); do
+                description="${descriptions[$i]}"
+                info_text="${info_texts[$i]}"
+                printf "%+${max_desc_len}s:" "${description}"
+                print_info_text "$(( max_desc_len + 1 ))" "$(get_terminal_width)" "${info_text}"
+            done
+        } > "${SCRIPT_TMP_DIR}/infos.out" && \
+        if (( ! first_run )); then
+            while (( number_of_lines > 0 )); do
+                printf "%s" "${TERM_CURSOR_UP}"
+                (( --number_of_lines ))
+            done
+            printf "\r"
+        fi
+        cat "${SCRIPT_TMP_DIR}/infos.out"
+        first_run=0
+        if (( CONTINUOUS_MODE )); then
+            current_timestamp="$(date '+%s')"
+            if (( CONTINUOUS_MODE_SECONDS > 0 )) && \
+                (( current_timestamp - start_timestamp > CONTINUOUS_MODE_SECONDS )); then
+                break
+            fi
+        else
+            break
+        fi
+        number_of_lines="$(wc -l "${SCRIPT_TMP_DIR}/infos.out" | awk '{ print $1 }')"
+    done
 }

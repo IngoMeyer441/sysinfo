@@ -1,21 +1,25 @@
 # shellcheck shell=bash
 
 print_usage () {
-    echo "Usage: $0 [-c color_mode] [-h] [-V]"
+    echo "Usage: $0 [-c color_mode] [-h] [-o seconds] [-V]"
     [[ "$1" == "short" ]] && return
     echo
     echo "A small utility to display system information."
     echo
     echo "Options:"
-    echo "  -c, --color       Force to use the given color mode (16, 256, truecolor, auto)."
-    echo "  -h, --help        Print this help message and exit."
-    echo "  -V, --version     Show the version number and exit."
+    echo "  -c, --color         Force to use the given color mode (16, 256, truecolor, auto)."
+    echo "  -h, --help          Print this help message and exit."
+    echo "  -o, --continuous    Run continuously and update system information for a given amount of seconds."
+    echo "                      Run endlessly if no value is given."
+    echo "  -V, --version       Show the version number and exit."
 }
 
 process_command_line_arguments () {
     COLOR_MODE="auto"
+    CONTINUOUS_MODE=0
+    CONTINUOUS_MODE_SECONDS=0
 
-    while getopts ":c:Vh-:" opt; do
+    while getopts ":c:oVh-:" opt; do
         case ${opt} in
             c)
                 if [[ "${OPTARG:0:1}" == "-" ]]; then
@@ -23,6 +27,14 @@ process_command_line_arguments () {
                     exit 1
                 fi
                 COLOR_MODE="${OPTARG}"
+                ;;
+            o)
+                CONTINUOUS_MODE=1
+                OPTARG="${!OPTIND}"
+                if [[ -n "${OPTARG}" && "${OPTARG:0:1}" != "-" ]]; then
+                    CONTINUOUS_MODE_SECONDS="${OPTARG}"
+                    (( ++OPTIND ))
+                fi
                 ;;
             V)
                 print_version
@@ -59,6 +71,22 @@ process_command_line_arguments () {
                         fi
                         COLOR_MODE="${LONG_OPTARG}"
                         (( ++OPTIND ))
+                        ;;
+                    continuous=*)
+                        CONTINUOUS_MODE=1
+                        if [[ -n "${LONG_OPTARG}" ]]; then
+                            CONTINUOUS_MODE_SECONDS="${LONG_OPTARG}"
+                        fi
+                        ;;
+                    continuous)
+                        # shellcheck disable=SC2034
+                        CONTINUOUS_MODE=1
+                        LONG_OPTARG="${!OPTIND}"
+                        if [[ -n "${LONG_OPTARG}" && "${LONG_OPTARG:0:1}" != "-" ]]; then
+                            # shellcheck disable=SC2034
+                            CONTINUOUS_MODE_SECONDS="${LONG_OPTARG}"
+                            (( ++OPTIND ))
+                        fi
                         ;;
                     help)
                         print_usage
