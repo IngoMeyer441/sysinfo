@@ -251,8 +251,11 @@ print_nic_usage_linux () {
     current_txs=()
     i=0
     for net_device in "${net_devices[@]}"; do
-        # Consider only physical network devices
-        [[ -d "/sys/class/net/${net_device}/device" ]] || continue
+        # Consider only physical network devices which are UP
+        if [[ ! -d "/sys/class/net/${net_device}/device" ]] || \
+            [[ "$(cat "/sys/class/net/${net_device}/carrier")" != "1" ]]; then
+            continue
+        fi
         # Use KiB as common unit
         rx="$(awk '{ printf("%d\n", $1 / 1024) }' < "/sys/class/net/${net_device}/statistics/rx_bytes")"
         tx="$(awk '{ printf("%d\n", $1 / 1024) }' < "/sys/class/net/${net_device}/statistics/tx_bytes")"
