@@ -15,6 +15,8 @@ init_terminal_formatting () {
 
     if command_available tput; then
         TERM_RESET="$(tput sgr0)"
+        TERM_CURSOR_INVISIBLE="$(tput civis)"
+        TERM_CURSOR_VISIBLE="$(tput cnorm)"
         TERM_CURSOR_UP="$(tput cuu1)"
         # TERM_BOLD="$(tput bold)"
         # TERM_FG_BLACK="$(tput setaf 0)"
@@ -30,6 +32,10 @@ init_terminal_formatting () {
         escape="$(printf "\033")"
         # shellcheck disable=SC2034
         TERM_RESET="${escape}[0m"
+        # shellcheck disable=SC2034
+        TERM_CURSOR_INVISIBLE="${escape}[?25l"
+        # shellcheck disable=SC2034
+        TERM_CURSOR_VISIBLE="${escape}[?12l${escape}[?25h"
         # shellcheck disable=SC2034
         TERM_CURSOR_UP="${escape}[A"
         # TERM_BOLD="${escape}[1m"

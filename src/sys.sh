@@ -312,6 +312,7 @@ display_infos () {
 
     first_run=1
     start_timestamp="$(date '+%s')"
+    printf "%s" "${TERM_CURSOR_INVISIBLE}"
     while true; do
         descriptions=()
         info_texts=()
