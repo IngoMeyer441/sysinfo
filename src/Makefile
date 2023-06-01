@@ -36,8 +36,8 @@ version.sh: version.template.sh
 
 build: sysinfo
 
-install: backup
-	@$(INSTALL) -D -m 0555 -v "backup" "$(BINDIR)/backup"
+install: build
+	@$(INSTALL) -D -m 0555 -v "sysinfo" "$(BINDIR)/sysinfo"
 
 clean:
 	rm -f sysinfo version.sh
