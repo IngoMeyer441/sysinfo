@@ -15,6 +15,13 @@ TWO_PASS_INFOS=( \
     "print_nic_usage_linux" \
 )
 
+CACHED_INFOS=( \
+    "print_os_info_linux" \
+    "print_shell_info_linux" \
+    "print_cpu_info_linux" \
+    "print_gpu_info_linux" \
+)
+
 print_os_info_linux () {
     local prefer_lsb
 
@@ -303,8 +310,8 @@ print_nic_usage_linux () {
 }
 
 display_infos () {
-    local all_infos descriptions info_texts first_run start_timestamp info_func current_info max_desc_len i description
-    local info_text current_timestamp number_of_lines
+    local all_infos descriptions info_texts first_run start_timestamp info_func found_cache_entry cached_info
+    local current_info max_desc_len i description info_text current_timestamp number_of_lines
 
     all_infos=( "${INFOS[@]}" "${TWO_PASS_INFOS[@]}" )
 
@@ -325,7 +332,18 @@ display_infos () {
             # Sleep a short amount of time to improve the measurement of the cpu and nic usage
             sleep 1
             for info_func in "${all_infos[@]}"; do
-                current_info="$(${info_func})" || continue
+                found_cache_entry=0
+                if is_in_array "${info_func}" "${CACHED_INFOS[@]}"; then
+                    eval "cached_info=\"\${cached_${info_func}}\""
+                    if [[ -n "${cached_info}" ]]; then
+                        current_info="${cached_info}"
+                        found_cache_entry=1
+                    fi
+                fi
+                if (( ! found_cache_entry )); then
+                    current_info="$(${info_func})" || continue
+                    printf -v "cached_${info_func}" "%s" "${current_info}"
+                fi
                 descriptions+=( "$(awk 'NR == 1' <<< "${current_info}")" )
                 info_texts+=( "$(awk 'NR > 1' <<< "${current_info}")" )
             done
