@@ -341,7 +341,9 @@ display_infos () {
                     fi
                 fi
                 if (( ! found_cache_entry )); then
-                    current_info="$(${info_func})" || continue
+                    # Avoid using a subshell, otherwise globally assigned variables in `${info_func}` won't be kept
+                    ${info_func} > "${SCRIPT_TMP_DIR}/current_info.out" && \
+                    current_info="$(cat "${SCRIPT_TMP_DIR}/current_info.out")" || continue
                     printf -v "cached_${info_func}" "%s" "${current_info}"
                 fi
                 descriptions+=( "$(awk 'NR == 1' <<< "${current_info}")" )
