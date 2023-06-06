@@ -4,7 +4,7 @@ cleanup () {
     if [[ -n "${SCRIPT_TMP_DIR}" ]]; then
         rm -rf "${SCRIPT_TMP_DIR}"
     fi
-    printf "%s" "${TERM_CURSOR_VISIBLE}" >/dev/tty
+    printf "\n%s" "${TERM_CURSOR_VISIBLE}" >/dev/tty
 }
 trap cleanup EXIT
 
@@ -95,4 +95,15 @@ kbytes_to_human_size () {
         -v scale="${scale}" \
         -v unit="${units[$i]}" \
         'BEGIN { printf("%0.2f %s\n", kibibytes/scale, unit) }'
+}
+
+timestamp () {
+    local current_timestamp
+
+    current_timestamp="${EPOCHREALTIME}"
+    if [[ -z "${current_timestamp}" ]]; then
+        current_timestamp="$(date '+%s')"
+    fi
+
+    echo "${current_timestamp}"
 }
