@@ -357,14 +357,17 @@ display_infos () {
                 info_text="${info_texts[$i]}"
                 printf "%+${max_desc_len}s:" "${description}"
                 print_info_text "$(( max_desc_len + 1 ))" "$(get_terminal_width)" "${info_text}"
+                if (( i < ${#descriptions[@]}-1 )); then
+                    printf "\n"
+                fi
             done
+            printf "\r"
         } > "${SCRIPT_TMP_DIR}/infos.out" && \
         if (( ! first_run )); then
             while (( number_of_lines > 0 )); do
                 printf "%s" "${TERM_CURSOR_UP}"
                 (( --number_of_lines ))
             done
-            printf "\r"
         fi
         cat "${SCRIPT_TMP_DIR}/infos.out"
         first_run=0

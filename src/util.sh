@@ -4,7 +4,7 @@ cleanup () {
     if [[ -n "${SCRIPT_TMP_DIR}" ]]; then
         rm -rf "${SCRIPT_TMP_DIR}"
     fi
-    printf "%s" "${TERM_CURSOR_VISIBLE}" >/dev/tty
+    printf "\n%s" "${TERM_CURSOR_VISIBLE}" >/dev/tty
 }
 trap cleanup EXIT
 

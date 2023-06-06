@@ -90,11 +90,10 @@ render_and_print_info_line () {
     done
     printf "%s" "${print_line}"
     repeat_char " " "${fill_chars_count}"
-    printf "\n"
 }
 
 print_info_text () {
-    local left_padding available_text_width info_lines is_first_line current_line_length info_line info_field
+    local left_padding available_text_width info_lines is_first_line i current_line_length info_line info_field
     local info_field_length print_line prepand_space
 
     left_padding="$1"
@@ -102,6 +101,7 @@ print_info_text () {
     mapfile -t info_lines <<< "$3"
 
     is_first_line=1
+    i=0
     for info_line in "${info_lines[@]}"; do
         if ! (( is_first_line )); then
             repeat_char " " "${left_padding}"
@@ -120,6 +120,7 @@ print_info_text () {
             if (( current_line_length > left_padding )) && \
                 (( current_line_length + info_field_length > available_text_width )); then
                 render_and_print_info_line "${print_line}" "${current_line_length}" "${available_text_width}"
+                printf "\n"
                 repeat_char " " "${left_padding}"
                 current_line_length="${left_padding}"
                 print_line=""
@@ -133,6 +134,10 @@ print_info_text () {
             fi
         done < <(awk -v RS=';;' '{ print }' <<< "${info_line}")
         render_and_print_info_line "${print_line}" "${current_line_length}" "${available_text_width}"
+        if (( i < ${#info_lines[@]}-1 )); then
+            printf "\n"
+        fi
         is_first_line=0
+        (( ++i ))
     done
 }
