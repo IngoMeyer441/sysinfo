@@ -96,3 +96,14 @@ kbytes_to_human_size () {
         -v unit="${units[$i]}" \
         'BEGIN { printf("%0.2f %s\n", kibibytes/scale, unit) }'
 }
+
+timestamp () {
+    local current_timestamp
+
+    current_timestamp="${EPOCHREALTIME}"
+    if [[ -z "${current_timestamp}" ]]; then
+        current_timestamp="$(date '+%s')"
+    fi
+
+    echo "${current_timestamp}"
+}

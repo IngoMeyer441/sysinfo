@@ -236,10 +236,7 @@ print_nic_usage_linux () {
     declare -g previous_net_timestamp
     declare -ga previous_rxs previous_txs
 
-    current_net_timestamp="${EPOCHREALTIME}"
-    if [[ -z "${current_net_timestamp}" ]]; then
-        current_net_timestamp="$(date '+%s')"
-    fi
+    current_net_timestamp="$(timestamp)"
     print_values="$(( ${#previous_rxs[@]} ))"
     mapfile -t net_devices < <(ls /sys/class/net)
 
@@ -310,19 +307,35 @@ print_nic_usage_linux () {
 }
 
 display_infos () {
-    local all_infos descriptions info_texts first_run start_timestamp info_func found_cache_entry cached_info
-    local current_info max_desc_len i description info_text current_timestamp number_of_lines
+    local all_infos first_run start_timestamp descriptions info_texts previous_timestamp current_timestamp info_func
+    local found_cache_entry cached_info current_info max_desc_len i description info_text number_of_lines
 
     all_infos=( "${INFOS[@]}" "${TWO_PASS_INFOS[@]}" )
 
     init_script_tmp_dir || return
 
     first_run=1
-    start_timestamp="$(date '+%s')"
+    start_timestamp="$(timestamp)"
     printf "%s" "${TERM_CURSOR_INVISIBLE}"
     while true; do
         descriptions=()
         info_texts=()
+        previous_timestamp="${current_timestamp}"
+        current_timestamp="$(timestamp)"
+        if (( ! first_run )); then
+            if (( CONTINUOUS_MODE )); then
+                if (( CONTINUOUS_MODE_SECONDS > 0 )) && \
+                    awk \
+                        -v current_timestamp="${current_timestamp}" \
+                        -v start_timestamp="${start_timestamp}" \
+                        -v CONTINUOUS_MODE_SECONDS="${CONTINUOUS_MODE_SECONDS}" \
+                        'BEGIN { exit((current_timestamp - start_timestamp > CONTINUOUS_MODE_SECONDS) ? 0 : 1) }'; then
+                    break
+                fi
+            else
+                break
+            fi
+        fi
         {
             if (( first_run )); then
                 for info_func in "${TWO_PASS_INFOS[@]}"; do
@@ -330,7 +343,15 @@ display_infos () {
                 done
             fi
             # Sleep a short amount of time to improve the measurement of the cpu and nic usage
-            sleep 1
+            # if iterations are too fast
+            if (( first_run )) || \
+                awk \
+                    -v current_timestamp="${current_timestamp}" \
+                    -v previous_timestamp="${previous_timestamp}" \
+                    -v CONTINUOUS_MODE_SECONDS="${CONTINUOUS_MODE_SECONDS}" \
+                    'BEGIN { exit((current_timestamp - previous_timestamp < 1) ? 0 : 1) }'; then
+                sleep 1
+            fi
             for info_func in "${all_infos[@]}"; do
                 found_cache_entry=0
                 if is_in_array "${info_func}" "${CACHED_INFOS[@]}"; then
@@ -371,15 +392,6 @@ display_infos () {
         fi
         cat "${SCRIPT_TMP_DIR}/infos.out"
         first_run=0
-        if (( CONTINUOUS_MODE )); then
-            current_timestamp="$(date '+%s')"
-            if (( CONTINUOUS_MODE_SECONDS > 0 )) && \
-                (( current_timestamp - start_timestamp > CONTINUOUS_MODE_SECONDS )); then
-                break
-            fi
-        else
-            break
-        fi
         number_of_lines="$(wc -l "${SCRIPT_TMP_DIR}/infos.out" | awk '{ print $1 }')"
     done
 }
