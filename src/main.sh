@@ -6,6 +6,10 @@ main () {
         >&2 echo "Your OS \"$(uname -s)\" is not supported yet."
         return 1
     fi
+    if ! command_available gawk; then
+        >&2 echo "GNU Awk is required."
+        return 1
+    fi
     init_terminal_formatting && \
     process_command_line_arguments "$@" && \
     display_infos
