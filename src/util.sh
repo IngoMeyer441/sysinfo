@@ -14,6 +14,11 @@ init_script_tmp_dir () {
     fi
 }
 
+awk () {
+    # Force to use GNU awk
+    gawk "$@"
+}
+
 command_available () {
     local command
 
